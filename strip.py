@@ -90,10 +90,10 @@ def process_file2(file2, lines_to_keep):
 
 def combine_temp_files(temp_file_base, num_files, combined_file_name, temp_file_suffix):
     combined_line_count = 0
-    with open(combined_file_name, 'wb') as combined_file:
+    with open(combined_file_name, 'w', encoding='utf-8') as combined_file:
         for i in tqdm(range(num_files + 1), desc="Combining files"):
             temp_file = f"{temp_file_base}_{i}{temp_file_suffix}"
-            with open(temp_file, 'rb') as temp:
+            with open(temp_file, 'r', encoding='utf-8') as temp:
                 for line in temp:
                     combined_file.write(line)
                     combined_line_count += 1
