@@ -1,5 +1,7 @@
 import argparse
 import os
+import shutil
+
 from tqdm import tqdm
 
 def remove_duplicates_from_chunk(chunk, lines_to_keep):
@@ -81,13 +83,13 @@ def process_file2(file2, lines_to_keep):
     print(f"Lines removed: {original_line_count - combined_line_count}")
 
 
+
 def combine_temp_files(temp_file_base, num_files, combined_file_name, temp_file_suffix):
-    with open(combined_file_name, 'w', encoding='utf-8') as combined_file:
+    with open(combined_file_name, 'wb') as combined_file:
         for i in tqdm(range(num_files + 1), desc="Combining files"):
             temp_file = f"{temp_file_base}_{i}{temp_file_suffix}"
-            with open(temp_file, 'r', encoding='utf-8') as temp:
-                for line in temp:
-                    combined_file.write(line)
+            with open(temp_file, 'rb') as temp:
+                shutil.copyfileobj(temp, combined_file)
             os.remove(temp_file)
     print(f"Combined all temporary files into {combined_file_name}")
 
