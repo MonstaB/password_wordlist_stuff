@@ -20,6 +20,8 @@ def process_chunk(chunk, lines_to_keep, temp_file, max_lines_per_file):
     return len(processed_lines)
 
 
+
+
 def process_file2(file2, lines_to_keep):
     temp_file_base = file2
     temp_file_suffix = ".temp"  # Define temp file suffix
@@ -74,7 +76,7 @@ def process_file2(file2, lines_to_keep):
         print(f"\nProcessed all lines from {file2}")
 
     # Combine temporary files
-    combined_file_name = f"{file2}_combined.txt"
+    combined_file_name = f"{file2}"
     combined_line_count = combine_temp_files(temp_file_base, file_index, combined_file_name, temp_file_suffix)
 
     # Print total stripped lines information
@@ -100,11 +102,18 @@ def combine_temp_files(temp_file_base, num_files, combined_file_name, temp_file_
     return combined_line_count
 
 
+def write_chunk_to_temp_file(chunk_lines, temp_dir, large_file, chunk_count):
+    chunk_file_path = os.path.join(temp_dir, f"{os.path.basename(large_file)}_chunk{chunk_count}")
+    with open(chunk_file_path, 'w', encoding='utf-8') as chunk_file:
+        chunk_file.writelines(chunk_lines)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Remove lines from a file (file2) that are present in other files (file1).')
     parser.add_argument('-f', '--file1', help='path to the first file')
     parser.add_argument('-c', '--combined', nargs='+', help='path to the first file(s) done combined')
+    parser.add_argument('-s', '--sequential', nargs='+', help='process large files sequentially and in chunks')
     parser.add_argument('-o', '--file2', help='path to the second file')
     args = parser.parse_args()
 
@@ -117,26 +126,62 @@ def main():
                 with open(file1, 'r', encoding='utf-8') as f1:
                     lines_to_keep.update(line.strip() for line in f1)
                 print(f"Read {file1}")
+
             except UnicodeDecodeError:
                 print(f"Failed to read {file1} with utf-8 encoding. Trying latin-1 encoding...")
                 with open(file1, 'r', encoding='latin-1') as f1:
                     lines_to_keep.update(line.strip() for line in f1)
                 print(f"Read {file1} with latin-1 encoding")
-    else:
+                # Process file2
+        process_file2(args.file2, lines_to_keep)
+    elif args.file1:
         lines_to_keep = set()
         try:
             print(f"Reading {args.file1}...")
             with open(args.file1, 'r', encoding='utf-8') as f1:
                 lines_to_keep.update(line.strip() for line in f1)
             print(f"Read {args.file1}")
+
         except UnicodeDecodeError:
             print(f"Failed to read {args.file1} with utf-8 encoding. Trying latin-1 encoding...")
             with open(args.file1, 'r', encoding='latin-1') as f1:
                 lines_to_keep.update(line.strip() for line in f1)
             print(f"Read {args.file1} with latin-1 encoding")
+            # Process file2
 
-    # Process file2
-    process_file2(args.file2, lines_to_keep)
+        process_file2(args.file2, lines_to_keep)
+
+    elif args.sequential:
+        for large_file in args.sequential:
+            temp_dir = "temp_chunks"
+            os.makedirs(temp_dir, exist_ok=True)
+            with open(large_file, 'r', encoding='utf-8') as f:
+                chunk_count = 0
+                chunk_lines = []
+                for line in f:
+                    chunk_lines.append(line)
+                    if len(chunk_lines) >= 100000000:
+                        write_chunk_to_temp_file(chunk_lines, temp_dir, large_file, chunk_count)
+                        chunk_lines = []
+                        chunk_count += 1
+                if chunk_lines:
+                    write_chunk_to_temp_file(chunk_lines, temp_dir, large_file, chunk_count)
+
+            # Process each chunk file sequentially
+            for chunk_file in sorted(os.listdir(temp_dir)):
+                lines_to_keep = set()
+                try:
+                    print(f"Reading {chunk_file}...")
+                    with open(os.path.join(temp_dir, chunk_file), 'r', encoding='utf-8') as f1:
+                        lines_to_keep.update(line.strip() for line in f1)
+                    print(f"Read {chunk_file}")
+                except UnicodeDecodeError:
+                    print(f"Failed to read {chunk_file} with utf-8 encoding. Trying latin-1 encoding...")
+                    with open(os.path.join(temp_dir, chunk_file), 'r', encoding='latin-1') as f1:
+                        lines_to_keep.update(line.strip() for line in f1)
+                    print(f"Read {chunk_file} with latin-1 encoding")
+                # Process file2
+                process_file2(args.file2, lines_to_keep)
 
 
 if __name__ == "__main__":
