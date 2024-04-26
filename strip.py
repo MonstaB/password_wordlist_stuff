@@ -20,8 +20,6 @@ def process_chunk(chunk, lines_to_keep, temp_file, max_lines_per_file):
     return len(processed_lines)
 
 
-
-
 def process_file2(file2, lines_to_keep):
     temp_file_base = file2
     temp_file_suffix = ".temp"  # Define temp file suffix
@@ -86,6 +84,7 @@ def process_file2(file2, lines_to_keep):
     print(f"Original file line count: {lines_processed}")
     print(f"Combined file line count: {combined_line_count}")
     print(f"Lines removed: {lines_processed - combined_line_count}")
+    return
 
 
 def combine_temp_files(temp_file_base, num_files, combined_file_name, temp_file_suffix):
@@ -105,7 +104,10 @@ def combine_temp_files(temp_file_base, num_files, combined_file_name, temp_file_
 def write_chunk_to_temp_file(chunk_lines, temp_dir, large_file, chunk_count):
     chunk_file_path = os.path.join(temp_dir, f"{os.path.basename(large_file)}_chunk{chunk_count}")
     with open(chunk_file_path, 'w', encoding='utf-8') as chunk_file:
-        chunk_file.writelines(chunk_lines)
+        with tqdm(total=len(chunk_lines), desc=f"Writing {os.path.basename(chunk_file_path)}", unit=" line") as pbar:
+            for line in chunk_lines:
+                chunk_file.write(line)
+                pbar.update(1)
 
 
 def main():
@@ -134,6 +136,8 @@ def main():
                 print(f"Read {file1} with latin-1 encoding")
                 # Process file2
         process_file2(args.file2, lines_to_keep)
+
+        exit(0)
     elif args.file1:
         lines_to_keep = set()
         try:
@@ -155,12 +159,13 @@ def main():
         for large_file in args.sequential:
             temp_dir = "temp_chunks"
             os.makedirs(temp_dir, exist_ok=True)
+            print(f"Reading {large_file}...")
             with open(large_file, 'r', encoding='utf-8') as f:
                 chunk_count = 0
                 chunk_lines = []
                 for line in f:
                     chunk_lines.append(line)
-                    if len(chunk_lines) >= 100000000:
+                    if len(chunk_lines) >= 75000000:
                         write_chunk_to_temp_file(chunk_lines, temp_dir, large_file, chunk_count)
                         chunk_lines = []
                         chunk_count += 1
@@ -182,6 +187,8 @@ def main():
                     print(f"Read {chunk_file} with latin-1 encoding")
                 # Process file2
                 process_file2(args.file2, lines_to_keep)
+                os.remove(os.path.join(temp_dir, chunk_file))  # Delete the chunk file after processing it
+                print("Processed and removed chunk file:", chunk_file)  # Status update
 
 
 if __name__ == "__main__":
