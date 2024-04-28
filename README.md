@@ -65,3 +65,4 @@ The script generates temporary files during processing, which are combined into 
 ## Note
 The script handles encoding issues gracefully, attempting both UTF-8 and Latin-1 encodings when reading files.
 For large files, it processes them sequentially and in chunks to optimize memory usage.
+Small files combined size around 1gb lage files individual size larger than 1gb, Tested on 16gb machine 11 gb outputfile 
