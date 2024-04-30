@@ -19,7 +19,7 @@ This is a Python script that removes lines from a file (`file2`) that are presen
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/MonstaB/file-line-removal-tool.git
+    git clone https://github.com/MonstaB/password_wordlist_stuff
     ```
 
 2. Install dependencies:
